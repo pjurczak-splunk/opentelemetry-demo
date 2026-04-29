@@ -7,12 +7,10 @@ x-default-logging: &logging
     max-size: "5m"
     max-file: "2"
     tag: "{{.Name}}"
-
 networks:
   default:
     name: opentelemetry-demo
     driver: bridge
-
 services:
   # ******************
   # Core Demo Services
@@ -35,9 +33,9 @@ services:
       - KAFKA_ADDR
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=accounting
-      - DB_CONNECTION_STRING=Host=${POSTGRES_HOST};Username=otelu;Password=otelp;Database=${POSTGRES_DB}
+      - DB_CONNECTION_STRING=Host=${POSTGRES_HOST};Username=astronomy_user;Password=${POSTGRES_ASTRONOMY_PASSWORD};Database=astronomy_db
       - OTEL_DOTNET_AUTO_TRACES_ENTITYFRAMEWORKCORE_INSTRUMENTATION_ENABLED=false
     depends_on:
       otel-collector:
@@ -45,7 +43,6 @@ services:
       kafka:
         condition: service_healthy
     logging: *logging
-
   # AdService
   ad:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-ad
@@ -70,18 +67,15 @@ services:
       - FLAGD_PORT
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=medium
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_SERVICE_NAME=ad
-      # Workaround on OSX for https://bugs.openjdk.org/browse/JDK-8345296
-      - _JAVA_OPTIONS
     depends_on:
       otel-collector:
         condition: service_started
       flagd:
         condition: service_started
     logging: *logging
-
   # Cart service
   cart:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-cart
@@ -105,7 +99,7 @@ services:
       - VALKEY_ADDR
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=high
       - OTEL_SERVICE_NAME=cart
       - ASPNETCORE_URLS=http://*:${CART_PORT}
     depends_on:
@@ -116,7 +110,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Checkout service
   checkout:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-checkout
@@ -147,7 +140,7 @@ services:
       - GOMEMLIMIT=16MiB
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=critical
       - OTEL_SERVICE_NAME=checkout
     depends_on:
       cart:
@@ -169,7 +162,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Currency service
   currency:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-currency
@@ -194,13 +186,12 @@ services:
       - VERSION=${IMAGE_VERSION}
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=high
       - OTEL_SERVICE_NAME=currency
     depends_on:
       otel-collector:
         condition: service_started
     logging: *logging
-
   # Email service
   email:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-email
@@ -224,13 +215,12 @@ services:
       - FLAGD_PORT
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=medium
       - OTEL_SERVICE_NAME=email
     depends_on:
       otel-collector:
         condition: service_started
     logging: *logging
-
   # Fraud Detection service
   fraud-detection:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-fraud-detection
@@ -255,7 +245,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_INSTRUMENTATION_KAFKA_EXPERIMENTAL_SPAN_ATTRIBUTES=true
       - OTEL_INSTRUMENTATION_MESSAGING_EXPERIMENTAL_RECEIVE_TELEMETRY_ENABLED=true
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=fraud-detection
     depends_on:
       otel-collector:
@@ -263,7 +253,6 @@ services:
       kafka:
         condition: service_healthy
     logging: *logging
-
   # Frontend
   frontend:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-frontend
@@ -292,7 +281,7 @@ services:
       - RECOMMENDATION_ADDR
       - SHIPPING_ADDR
       - OTEL_EXPORTER_OTLP_ENDPOINT
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=critical
       - ENV_PLATFORM
       - OTEL_SERVICE_NAME=frontend
       - PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
@@ -325,7 +314,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Frontend Proxy (Envoy)
   frontend-proxy:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-frontend-proxy
@@ -357,7 +345,7 @@ services:
       - IMAGE_PROVIDER_PORT
       - OTEL_COLLECTOR_PORT_GRPC
       - OTEL_COLLECTOR_PORT_HTTP
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=critical
       - OTEL_SERVICE_NAME=frontend-proxy
       - ENVOY_PORT
       - ENVOY_ADDR
@@ -366,19 +354,18 @@ services:
       - FLAGD_PORT
       - FLAGD_UI_HOST
       - FLAGD_UI_PORT
+      - TELEMETRY_DOCS_HOST
+      - TELEMETRY_DOCS_PORT
     depends_on:
       frontend:
         condition: service_started
       load-generator:
         condition: service_started
-      jaeger:
-        condition: service_started
-      grafana:
-        condition: service_started
       flagd-ui:
         condition: service_started
+      telemetry-docs:
+        condition: service_started
     dns_search: ""
-
   # image-provider
   image-provider:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-image-provider
@@ -399,13 +386,12 @@ services:
       - IMAGE_PROVIDER_PORT
       - OTEL_COLLECTOR_HOST
       - OTEL_COLLECTOR_PORT_GRPC
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=image-provider
     depends_on:
       otel-collector:
         condition: service_started
     logging: *logging
-
   # Load Generator
   load-generator:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-load-generator
@@ -431,7 +417,7 @@ services:
       - LOCUST_BROWSER_TRAFFIC_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=load-generator
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
       - LOCUST_WEB_HOST=0.0.0.0
@@ -444,7 +430,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Payment service
   payment:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-payment
@@ -468,7 +453,7 @@ services:
       - FLAGD_PORT
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=critical
       - OTEL_SERVICE_NAME=payment
     depends_on:
       otel-collector:
@@ -476,7 +461,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Product Catalog service
   product-catalog:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-product-catalog
@@ -495,23 +479,26 @@ services:
       - "${PRODUCT_CATALOG_PORT}"
     environment:
       - PRODUCT_CATALOG_PORT
-      - PRODUCT_CATALOG_RELOAD_INTERVAL
       - FLAGD_HOST
       - FLAGD_PORT
       - GOMEMLIMIT=16MiB
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=high
       - OTEL_SERVICE_NAME=product-catalog
-    volumes:
-      - ./src/product-catalog/products:/usr/src/app/products
+      - OTEL_CONFIG_FILE=/otel-config.yml
+      - OTEL_SEMCONV_STABILITY_OPT_IN=database
+      - DB_CONNECTION_STRING=postgres://astronomy_user:${POSTGRES_ASTRONOMY_PASSWORD}@${POSTGRES_HOST}/astronomy_db?sslmode=disable
     depends_on:
       otel-collector:
         condition: service_started
       flagd:
         condition: service_started
+      astronomy-db:
+        condition: service_started
+    volumes:
+      - ./otel-config.yml:/otel-config.yml
     logging: *logging
-
   # Product reviews service
   product-reviews:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-product-reviews
@@ -533,11 +520,11 @@ services:
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=medium
       - OTEL_SERVICE_NAME=product-reviews
       - OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-      - DB_CONNECTION_STRING=host=${POSTGRES_HOST} user=otelu password=otelp dbname=${POSTGRES_DB}
+      - DB_CONNECTION_STRING=host=${POSTGRES_HOST} user=astronomy_user password=${POSTGRES_ASTRONOMY_PASSWORD} dbname=astronomy_db
       - LLM_BASE_URL
       - OPENAI_API_KEY
       - LLM_MODEL
@@ -551,12 +538,11 @@ services:
         condition: service_started
       llm:
         condition: service_started
-      postgresql:
+      astronomy-db:
         condition: service_started
       otel-collector:
         condition: service_started
     logging: *logging
-
   # Quote service
   quote:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-quote
@@ -580,13 +566,12 @@ services:
       - OTEL_PHP_AUTOLOAD_ENABLED=true
       - QUOTE_PORT
       - OTEL_PHP_INTERNAL_METRICS_ENABLED=true
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=quote
     depends_on:
       otel-collector:
         condition: service_started
     logging: *logging
-
   # Recommendation service
   recommendation:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-recommendation
@@ -599,7 +584,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M               # This is high to enable supporting the recommendationCache feature flag use case
+          memory: 500M # This is high to enable supporting the recommendationCache feature flag use case
     restart: unless-stopped
     ports:
       - "${RECOMMENDATION_PORT}"
@@ -611,7 +596,7 @@ services:
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=medium
       - OTEL_SERVICE_NAME=recommendation
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
@@ -622,7 +607,6 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
   # Shipping service
   shipping:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-shipping
@@ -644,14 +628,13 @@ services:
       - SHIPPING_PORT
       - QUOTE_ADDR
       - OTEL_EXPORTER_OTLP_ENDPOINT
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=high
       - OTEL_SERVICE_NAME=shipping
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
     depends_on:
       otel-collector:
         condition: service_started
     logging: *logging
-
   # ******************
   # Dependent Services
   # ******************
@@ -668,21 +651,15 @@ services:
       - FLAGD_OTEL_COLLECTOR_URI=${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_GRPC}
       - FLAGD_METRICS_EXPORTER=otel
       - GOMEMLIMIT=60MiB
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=flagd
-    command: [
-      "start",
-      "--uri",
-      "file:./etc/flagd/demo.flagd.json"
-    ]
+    command: ["start", "--uri", "file:./etc/flagd/demo.flagd.json"]
     ports:
       - "${FLAGD_PORT}"
       - "${FLAGD_OFREP_PORT}"
     volumes:
       - ./src/flagd:/etc/flagd
-    logging:
-      *logging
-
+    logging: *logging
   # Flagd UI for configuring the feature flag service
   flagd-ui:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-flagd-ui
@@ -701,7 +678,7 @@ services:
       - FLAGD_UI_PORT
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=flagd-ui
       - SECRET_KEY_BASE=yYrECL4qbNwleYInGJYvVnSkwJuSQJ4ijPTx5tirGUXrbznFIBFVJdPl5t6O9ASw
       - PHX_HOST=localhost
@@ -714,7 +691,6 @@ services:
         condition: service_started
     volumes:
       - ./src/flagd:/app/data
-
   # Kafka used by Checkout, Accounting, and Fraud Detection services
   kafka:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-kafka
@@ -737,11 +713,9 @@ services:
       - KAFKA_CONTROLLER_QUORUM_VOTERS=1@${KAFKA_HOST}:9093
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES},service.criticality=low
       - OTEL_SERVICE_NAME=kafka
       - KAFKA_HEAP_OPTS=-Xmx400m -Xms400m
-      # Workaround on OSX for https://bugs.openjdk.org/browse/JDK-8345296
-      - _JAVA_OPTIONS
     healthcheck:
       test: nc -z kafka 9092
       start_period: 10s
@@ -749,7 +723,6 @@ services:
       timeout: 10s
       retries: 10
     logging: *logging
-
   # LLM used by Product Review service
   llm:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-llm
@@ -773,16 +746,10 @@ services:
       flagd:
         condition: service_started
     logging: *logging
-
-  # Postgresql used by Accounting service
-  postgresql:
-    image: ${IMAGE_NAME}:${DEMO_VERSION}-postgresql
-    container_name: postgresql
-    build:
-      context: ./
-      dockerfile: ${POSTGRES_DOCKERFILE}
-      cache_from:
-        - ${IMAGE_NAME}:${IMAGE_VERSION}-postgresql
+  # PostgreSQL database for the astronomy demo
+  astronomy-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: astronomy-db
     deploy:
       resources:
         limits:
@@ -790,12 +757,12 @@ services:
     restart: unless-stopped
     ports:
       - ${POSTGRES_PORT}
+    command: postgres -c shared_preload_libraries=pg_stat_statements
     environment:
-      - POSTGRES_USER=root
       - POSTGRES_PASSWORD
-      - POSTGRES_DB
+    volumes:
+      - ./src/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
     logging: *logging
-
   # Valkey used by Cart service
   valkey-cart:
     image: ${VALKEY_IMAGE}
@@ -809,153 +776,70 @@ services:
     ports:
       - "${VALKEY_PORT}"
     logging: *logging
-
-
-  # ********************
-  # Telemetry Components
-  # ********************
-  # Jaeger
-  jaeger:
-    image: ${JAEGERTRACING_IMAGE}
-    container_name: jaeger
-    command:
-      - "--config=file:/etc/jaeger/config.yml"
-    deploy:
-      resources:
-        limits:
-          memory: 1200M
-    restart: unless-stopped
-    ports:
-      - "${JAEGER_UI_PORT}"
-      - "${JAEGER_GRPC_PORT}"
-    environment:
-      - JAEGER_HOST
-      - JAEGER_GRPC_PORT
-      - PROMETHEUS_ADDR
-      - OTEL_COLLECTOR_HOST
-      - OTEL_COLLECTOR_PORT_HTTP
-      - MEMORY_MAX_TRACES=25000
-    volumes:
-      - ./src/jaeger/config.yml:/etc/jaeger/config.yml
-    logging: *logging
-
-  # Grafana
-  grafana:
-    image: ${GRAFANA_IMAGE}
-    container_name: grafana
-    deploy:
-      resources:
-        limits:
-          memory: 175M
-    restart: unless-stopped
-    environment:
-      - "GF_INSTALL_PLUGINS=grafana-opensearch-datasource"
-    volumes:
-      - ./src/grafana/grafana.ini:/etc/grafana/grafana.ini
-      - ./src/grafana/provisioning/:/etc/grafana/provisioning/
-    ports:
-      - "${GRAFANA_PORT}"
-    logging: *logging
-
   # OpenTelemetry Collector
   otel-collector:
-    image: ${COLLECTOR_CONTRIB_IMAGE}
+    image: quay.io/signalfx/splunk-otel-collector:latest
     container_name: otel-collector
     deploy:
       resources:
         limits:
           memory: 200M
     restart: unless-stopped
-    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
+    command: ["--config=/etc/otelcol-config.yml"]
     user: 0:0
     volumes:
-      - ${HOST_FILESYSTEM}:/hostfs:ro
-      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
-      - ${OTEL_COLLECTOR_CONFIG}:/etc/otelcol-config.yml
-      - ${OTEL_COLLECTOR_CONFIG_EXTRAS}:/etc/otelcol-config-extras.yml
+      - ./splunk/otelcol-config.yml:/etc/otelcol-config.yml
+      - ./logs:/logs
+      - ./checkpoint:/checkpoint
     ports:
       - "${OTEL_COLLECTOR_PORT_GRPC}"
       - "${OTEL_COLLECTOR_PORT_HTTP}"
-    depends_on:
-      jaeger:
-        condition: service_started
-      opensearch:
-        condition: service_healthy
+      - "9464"
+      - "8888"
+      - "13133"
+      - "6060"
+      - "9080"
+      - "9411"
+      - "9943"
     logging: *logging
     environment:
       - FRONTEND_PROXY_ADDR
+      - HOST_FILESYSTEM
       - IMAGE_PROVIDER_HOST
       - IMAGE_PROVIDER_PORT
-      - HOST_FILESYSTEM
+      - KAFKA_ADDR
       - OTEL_COLLECTOR_HOST
       - OTEL_COLLECTOR_PORT_GRPC
       - OTEL_COLLECTOR_PORT_HTTP
       - POSTGRES_HOST
       - POSTGRES_PORT
       - POSTGRES_PASSWORD
+      - POSTGRES_MONITORING_PASSWORD
       - GOMEMLIMIT=160MiB
-
-  # Prometheus
-  prometheus:
-    image: ${PROMETHEUS_IMAGE}
-    container_name: prometheus
-    command:
-      - --web.console.templates=/etc/prometheus/consoles
-      - --web.console.libraries=/etc/prometheus/console_libraries
-      - --storage.tsdb.retention.time=7d
-      - --config.file=/etc/prometheus/prometheus-config.yaml
-      - --storage.tsdb.path=/prometheus
-      - --web.enable-lifecycle
-      - --web.route-prefix=/
-      - --web.enable-otlp-receiver
-      - --enable-feature=exemplar-storage
-    volumes:
-      - ./src/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
-    deploy:
-      resources:
-        limits:
-          memory: 200M
-    restart: unless-stopped
-    ports:
-      - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
-    logging: *logging
-
-  # OpenSearch
-  opensearch:
-    container_name: opensearch
+      - SPLUNK_ACCESS_TOKEN=${SPLUNK_ACCESS_TOKEN}
+      - SPLUNK_REALM=${SPLUNK_REALM}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
+      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL}
+      - SPLUNK_MEMORY_TOTAL_MIB=${SPLUNK_MEMORY_TOTAL_MIB}
+  # Telemetry Documentation
+  telemetry-docs:
+    image: ${IMAGE_NAME}:${DEMO_VERSION}-telemetry-docs
+    container_name: telemetry-docs
     build:
       context: ./
-      dockerfile: ${OPENSEARCH_DOCKERFILE}
+      dockerfile: ${TELEMETRY_DOCS_DOCKERFILE}
       cache_from:
-        - ${IMAGE_NAME}:${IMAGE_VERSION}-opensearch
+        - ${IMAGE_NAME}:${IMAGE_VERSION}-telemetry-docs
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 100M
     restart: unless-stopped
-    environment:
-      - cluster.name=demo-cluster
-      - node.name=demo-node
-      - bootstrap.memory_lock=true
-      - discovery.type=single-node
-      - OPENSEARCH_JAVA_OPTS=-Xms400m -Xmx400m
-      - DISABLE_INSTALL_DEMO_CONFIG=true
-      - DISABLE_SECURITY_PLUGIN=true
-      # Workaround on OSX for https://bugs.openjdk.org/browse/JDK-8345296
-      - _JAVA_OPTIONS
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
     ports:
-      - "9200"
-    healthcheck:
-      test: curl -s http://localhost:9200/_cluster/health | grep -E '"status":"(green|yellow)"'
-      start_period: 10s
-      interval: 5s
-      timeout: 10s
-      retries: 10
+      - "${TELEMETRY_DOCS_PORT}"
+    environment:
+      - TELEMETRY_DOCS_PORT
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT_GRPC
+      - OTEL_SERVICE_NAME=telemetry-docs
     logging: *logging
