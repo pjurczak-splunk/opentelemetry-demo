@@ -102,7 +102,7 @@ processors:
   resource/add_environment:
     attributes:
       - action: insert
-        value: pszczółka-maja
+        value: pszczolka-maja
         key: deployment.environment
 
   resourcedetection:
