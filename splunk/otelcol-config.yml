@@ -102,7 +102,7 @@ processors:
   resource/add_environment:
     attributes:
       - action: insert
-        value: pszczolka-maja
+        value: pszczółka-maja
         key: deployment.environment
 
   resourcedetection:
@@ -179,13 +179,13 @@ service:
         - memory_limiter
         - batch
         - resourcedetection
-        - resource/add_environment
+      #  - resource/add_environment
       exporters: [otlphttp, signalfx]
       # Use instead when sending to gateway
       #exporters: [otlp/gateway, signalfx]
     metrics:
       receivers: [hostmetrics, otlp]
-      processors: [memory_limiter, batch, resourcedetection, resource/add_environment]
+      processors: [memory_limiter, batch, resourcedetection]
       exporters: [signalfx]
       # Use instead when sending to gateway
       #exporters: [otlp/gateway]
